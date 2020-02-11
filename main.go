@@ -75,6 +75,7 @@ func main() {
 	if *raw{
 		formatter := LogFormat{}
 		formatter.TimestampFormat = "2006-01-02 15:04:05"
+		logrus.SetOutput(os.Stdout)
 		logrus.SetFormatter(&formatter)
 	} else {
 		if *json {
