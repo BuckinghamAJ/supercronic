@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
 	"os"
 	"os/signal"
+	//"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -23,9 +25,31 @@ var Usage = func() {
 	flag.PrintDefaults()
 }
 
+
+type LogFormat struct {
+	TimestampFormat string
+}
+
+func (f *LogFormat) Format(entry *logrus.Entry) ([]byte, error) {
+	var b *bytes.Buffer
+
+	if entry.Buffer != nil {
+		b = entry.Buffer
+	} else {
+		b = &bytes.Buffer{}
+	}
+
+	b.WriteString(entry.Message)
+	b.WriteString("\n")
+
+	return b.Bytes(), nil
+}
+
+
 func main() {
 	debug := flag.Bool("debug", false, "enable debug logging")
 	json := flag.Bool("json", false, "enable JSON logging")
+	raw := flag.Bool("raw", false, "enable raw logging")
 	test := flag.Bool("test", false, "test crontab (does not run jobs)")
 	prometheusListen := flag.String("prometheus-listen-address", "", "give a valid ip:port address to expose Prometheus metrics at /metrics")
 	splitLogs := flag.Bool("split-logs", false, "split log output into stdout/stderr")
@@ -48,10 +72,16 @@ func main() {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 
-	if *json {
-		logrus.SetFormatter(&logrus.JSONFormatter{})
+	if *raw{
+		formatter := LogFormat{}
+		formatter.TimestampFormat = "2006-01-02 15:04:05"
+		logrus.SetFormatter(&formatter)
 	} else {
-		logrus.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
+		if *json {
+			logrus.SetFormatter(&logrus.JSONFormatter{})
+		} else {
+			logrus.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
+		}
 	}
 	if *splitLogs {
 		hook.RegisterSplitLogger(
@@ -107,7 +137,9 @@ func main() {
 	for true {
 		promMetrics.Reset()
 
-		logrus.Infof("read crontab: %s", crontabFileName)
+		t := time.Now()
+		logrus.Info(fmt.Sprintf("{\"message\": \"read crontab: %s\", \"level\":\"info\", \"timestamp\":\"%s\"}",crontabFileName, t.Format(time.RFC3339)))
+
 		tab, err := readCrontabAtPath(crontabFileName)
 
 		if err != nil {

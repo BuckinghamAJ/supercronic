@@ -64,7 +64,8 @@ func startReaderDrain(wg *sync.WaitGroup, readerLogger *logrus.Entry, reader io.
 }
 
 func runJob(cronCtx *crontab.Context, command string, jobLogger *logrus.Entry) error {
-	jobLogger.Info("starting")
+	t := time.Now()
+	jobLogger.Info(fmt.Sprintf("{\"message\": \"starting\", \"level\":\"info\", \"timestamp\":\"%s\"}",t.Format(time.RFC3339)))
 
 	cmd := exec.Command(cronCtx.Shell, "-c", command)
 
@@ -151,7 +152,9 @@ func startFunc(wg *sync.WaitGroup, exitCtx context.Context, logger *logrus.Entry
 
 			delay := nextRun.Sub(time.Now())
 			if delay < 0 {
-				logger.Warningf("job took too long to run: it should have started %v ago", -delay)
+				t := time.Now()
+				logger.Warning(fmt.Sprintf("{\"message\": \"job took too long to run: it should have started %v ago\", \"level\":\"info\", \"timestamp\":\"%s\"", -delay, t.Format(time.RFC3339) ))
+
 				nextRun = time.Now()
 				continue
 			}
@@ -210,12 +213,13 @@ func StartJob(wg *sync.WaitGroup, cronCtx *crontab.Context, job *crontab.Job, ex
 
 		promMetrics.CronsExecCounter.With(jobPromLabels(job)).Inc()
 
+		t := time.Now()
 		if err == nil {
-			jobLogger.Info("job succeeded")
+			jobLogger.Info(fmt.Sprintf("{\"message\": \"job succeeded\", \"level\":\"info\", \"timestamp\":\"%s\"}",t.Format(time.RFC3339)))
 
 			promMetrics.CronsSuccessCounter.With(jobPromLabels(job)).Inc()
 		} else {
-			jobLogger.Error(err)
+			jobLogger.Error(fmt.Sprintf("{\"message\": \"%s\", \"level\":\"info\", \"timestamp\":\"%s\"}", err, t.Format(time.RFC3339)))
 
 			promMetrics.CronsFailCounter.With(jobPromLabels(job)).Inc()
 		}
