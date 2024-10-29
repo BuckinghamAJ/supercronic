@@ -32,6 +32,8 @@ func main() {
 	debug := flag.Bool("debug", false, "enable debug logging")
 	quiet := flag.Bool("quiet", false, "do not log informational messages (takes precedence over debug)")
 	json := flag.Bool("json", false, "enable JSON logging")
+	raw := flag.Bool("raw", false, "enable RAW logging")
+
 	printVersion := flag.Bool("version", false, "print version and exit")
 	test := flag.Bool("test", false, "test crontab (does not run jobs)")
 	inotify := flag.Bool("inotify", false, "use inotify to detect crontab file changes")
@@ -87,6 +89,11 @@ func main() {
 
 	if *quiet {
 		logrus.SetLevel(logrus.WarnLevel)
+	}
+
+	if *raw {
+		logrus.SetOutput(os.Stdout)
+		logrus.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
 	}
 
 	if *json {
