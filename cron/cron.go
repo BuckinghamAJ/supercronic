@@ -63,7 +63,7 @@ func startReaderDrain(wg *sync.WaitGroup, readerLogger *logrus.Entry, reader io.
 	}()
 }
 
-func runJob(cronCtx *crontab.Context, command string, jobLogger *logrus.Entry) error {
+func runJob(cronCtx *crontab.Context, command string, jobLogger *logrus.Entry, passthroughLogs bool) error {
 	t := time.Now()
 	jobLogger.Info(fmt.Sprintf("{\"message\": \"starting\", \"level\":\"info\", \"timestamp\":\"%s\"}",t.Format(time.RFC3339)))
 
