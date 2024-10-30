@@ -1,19 +1,21 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
 	"os"
 	"os/signal"
+	//"strings"
 	"sync"
 	"syscall"
 	"time"
 
-	"github.com/aptible/supercronic/cron"
-	"github.com/aptible/supercronic/crontab"
-	"github.com/aptible/supercronic/log/hook"
-	"github.com/aptible/supercronic/prometheus_metrics"
+	"github.com/BuckinghamAJ/supercronic/cron"
+	"github.com/BuckinghamAJ/supercronic/crontab"
+	"github.com/BuckinghamAJ/supercronic/log/hook"
+	"github.com/BuckinghamAJ/supercronic/prometheus_metrics"
 	"github.com/evalphobia/logrus_sentry"
 	"github.com/fsnotify/fsnotify"
 	"github.com/sirupsen/logrus"
@@ -27,6 +29,27 @@ var Usage = func() {
 	fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] CRONTAB\n\nAvailable options:\n", os.Args[0])
 	flag.PrintDefaults()
 }
+
+
+type LogFormat struct {
+	TimestampFormat string
+}
+
+func (f *LogFormat) Format(entry *logrus.Entry) ([]byte, error) {
+	var b *bytes.Buffer
+
+	if entry.Buffer != nil {
+		b = entry.Buffer
+	} else {
+		b = &bytes.Buffer{}
+	}
+
+	b.WriteString(entry.Message)
+	b.WriteString("\n")
+
+	return b.Bytes(), nil
+}
+
 
 func main() {
 	debug := flag.Bool("debug", false, "enable debug logging")
@@ -91,15 +114,19 @@ func main() {
 		logrus.SetLevel(logrus.WarnLevel)
 	}
 
-	if *raw {
+	
+	if *raw{
+		formatter := LogFormat{}
+		formatter.TimestampFormat = "2006-01-02 15:04:05"
 		logrus.SetOutput(os.Stdout)
-		logrus.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
-	}
-
-	if *json {
-		logrus.SetFormatter(&logrus.JSONFormatter{})
+		logrus.SetFormatter(&formatter)
+		
 	} else {
-		logrus.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
+		if *json {
+			logrus.SetFormatter(&logrus.JSONFormatter{})
+		} else {
+			logrus.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
+		}
 	}
 	if *splitLogs {
 		hook.RegisterSplitLogger(
@@ -237,7 +264,9 @@ func main() {
 	for {
 		promMetrics.Reset()
 
-		logrus.Infof("read crontab: %s", crontabFileName)
+		t := time.Now()
+		logrus.Info(fmt.Sprintf("{\"message\": \"read crontab: %s\", \"level\":\"info\", \"timestamp\":\"%s\"}",crontabFileName, t.Format(time.RFC3339)))
+
 		tab, err := readCrontabAtPath(crontabFileName)
 
 		if err != nil {

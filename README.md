@@ -81,9 +81,9 @@ Run the following to fetch Supercronic, install its dependencies, and install
 it:
 
 ```
-go get -d github.com/aptible/supercronic
-cd "${GOPATH}/src/github.com/aptible/supercronic"
-go mod vendor
+go get -d github.com/BuckinghamAJ/supercronic
+cd "${GOPATH}/src/github.com/BuckinghamAJ/supercronic"
+dep ensure -vendor-only
 go install
 ```
 
